@@ -41,7 +41,7 @@ class ChzzkChat:
             "cmd"   : CHZZK_CHAT_CMD['connect'],
             "tid"   : 1,
             "bdy"   : {
-                "uid"     : "2c18f320c3a67834f9b9c38874567953",
+                "uid"     : self.userIdHash,
                 "devType" : 2001,
                 "accTkn"  : self.accessToken,
                 "auth"    : "SEND"
