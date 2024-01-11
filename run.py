@@ -16,13 +16,13 @@ class ChzzkChat:
         self.cookies  = cookies
         self.logger   = logger
 
+        self.sid           = None
         self.userIdHash    = api.fetch_userIdHash(self.cookies)
         self.chatChannelId = api.fetch_chatChannelId(self.streamer)
         self.channelName   = api.fetch_channelName(self.streamer)
         self.accessToken   = api.fetch_accessToken(self.chatChannelId, self.cookies)
 
         self.connect()
-        self.run()
 
 
     def connect(self):
@@ -50,13 +50,14 @@ class ChzzkChat:
 
         sock.send(json.dumps(dict(send_dict, **default_dict)))
         sock_response = json.loads(sock.recv())
+        self.sid = sock_response['bdy']['sid']
         print(f'\r{self.channelName} 채팅창에 연결 중 ..', end="")
 
         send_dict = {
             "cmd"   : CHZZK_CHAT_CMD['request_recent_chat'],
             "tid"   : 2,
             
-            "sid"   : sock_response['bdy']['sid'],
+            "sid"   : self.sid,
             "bdy"   : {
                 "recentMessageCount" : 50
             }
@@ -71,8 +72,39 @@ class ChzzkChat:
             print('연결 완료')
         else:
             raise ValueError('오류 발생')
+        
 
-    
+    def send(self, message:str):
+
+        default_dict = {  
+            "ver"   : "2",
+            "svcid" : "game",
+            "cid"   : self.chatChannelId,
+        }
+
+        extras = {
+            "chatType"          : "STREAMING",
+            "emojis"            : "",
+            "osType"            : "PC",
+            "streamingChannelId": self.chatChannelId
+        }
+
+        send_dict = {
+            "tid"   : 4,
+            "cmd"   : CHZZK_CHAT_CMD['send_chat'],
+            "retry" : False,
+            "sid"   : self.sid,
+            "bdy"   : {
+                "msg"           : message,
+                "msgTypeCode"   : 1,
+                "extras"        : extras,
+                "msgTime"       : int(datetime.datetime.now().timestamp())
+            }
+        }
+
+        self.sock.send(json.dumps(dict(send_dict, **default_dict)))
+
+
     def run(self):
 
         while True:
@@ -138,4 +170,11 @@ if __name__ == '__main__':
         cookies = json.load(f)
 
     logger = get_logger()
-    ChzzkChat(args.streamer_id, cookies, logger)
+    chzzkchat = ChzzkChat(args.streamer_id, cookies, logger)
+
+    # 채팅창으로 메세지 보내기
+    # mesaage = ' '
+    # chzzkchat.send(message=mesaage)
+
+    # 채팅 크롤링
+    chzzkchat.run()

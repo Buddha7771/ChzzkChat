@@ -3,7 +3,7 @@ import requests
 
 def fetch_chatChannelId(streamer:str) -> str :
 
-    url = f'https://api.chzzk.naver.com/polling/v1/channels/{streamer}/live-status'
+    url = f'https://api.chzzk.naver.com/polling/v2/channels/{streamer}/live-status'
     try:
         response = requests.get(url).json()
         return response['content']['chatChannelId']
