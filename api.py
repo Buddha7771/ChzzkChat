@@ -26,7 +26,7 @@ def fetch_accessToken(chatChannelId, cookies:dict) -> str :
     url = f'https://comm-api.game.naver.com/nng_main/v1/chats/access-token?channelId={chatChannelId}&chatType=STREAMING'    
     try:
         response = requests.get(url, cookies=cookies).json()
-        return response['content']['accessToken']
+        return response['content']['accessToken'], response['content']['extraToken']
     except:
         raise ValueError(f'잘못된 입력값 : {chatChannelId}, {cookies}')
 

@@ -20,7 +20,7 @@ class ChzzkChat:
         self.userIdHash    = api.fetch_userIdHash(self.cookies)
         self.chatChannelId = api.fetch_chatChannelId(self.streamer)
         self.channelName   = api.fetch_channelName(self.streamer)
-        self.accessToken   = api.fetch_accessToken(self.chatChannelId, self.cookies)
+        self.accessToken, self.extraToken = api.fetch_accessToken(self.chatChannelId, self.cookies)
 
         self.connect()
 
@@ -77,7 +77,7 @@ class ChzzkChat:
     def send(self, message:str):
 
         default_dict = {  
-            "ver"   : "2",
+            "ver"   : 2,
             "svcid" : "game",
             "cid"   : self.chatChannelId,
         }
@@ -86,18 +86,19 @@ class ChzzkChat:
             "chatType"          : "STREAMING",
             "emojis"            : "",
             "osType"            : "PC",
+            "extraToken"        : self.extraToken,
             "streamingChannelId": self.chatChannelId
         }
 
         send_dict = {
-            "tid"   : 4,
+            "tid"   : 3,
             "cmd"   : CHZZK_CHAT_CMD['send_chat'],
             "retry" : False,
             "sid"   : self.sid,
             "bdy"   : {
                 "msg"           : message,
                 "msgTypeCode"   : 1,
-                "extras"        : extras,
+                "extras"        : json.dumps(extras),
                 "msgTime"       : int(datetime.datetime.now().timestamp())
             }
         }
