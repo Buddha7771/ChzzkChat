@@ -109,38 +109,54 @@ class ChzzkChat:
     def run(self):
 
         while True:
-        
+
             try:
-                raw_message = self.sock.recv()
+        
+                try:
+                    raw_message = self.sock.recv()
 
+                except:
+                    self.connect()
+                    raw_message = self.sock.recv()
+
+                raw_message = json.loads(raw_message)
+                chat_cmd    = raw_message['cmd']
+                
+                if chat_cmd == CHZZK_CHAT_CMD['ping']:
+
+                    self.sock.send(
+                        json.dumps({
+                            "ver" : "2",
+                            "cmd" : CHZZK_CHAT_CMD['pong']
+                        })
+                    )
+                    continue
+                
+                if chat_cmd != CHZZK_CHAT_CMD['chat'] and chat_cmd != CHZZK_CHAT_CMD['donation']:
+                    continue
+
+                for chat_data in raw_message['bdy']:
+                    
+                    if chat_data['uid'] == 'anonymous':
+                        nickname = '익명의 후원자'
+
+                    else:
+                        
+                        try:
+                            profile_data = json.loads(chat_data['profile'])
+                            nickname = profile_data["nickname"]
+
+                        except:
+                            continue
+
+                    now = datetime.datetime.fromtimestamp(chat_data['msgTime']/1000)
+                    now = datetime.datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
+
+                    self.logger.info(f'[{now}] {nickname} : {chat_data["msg"]}')
+                
             except:
-                self.connect()
-                raw_message = self.sock.recv()
-
-            raw_message = json.loads(raw_message)
-            chat_cmd    = raw_message['cmd']
+                pass
             
-            if chat_cmd == CHZZK_CHAT_CMD['ping']:
-
-                self.sock.send(
-                    json.dumps({
-                        "ver" : "2",
-                        "cmd" : CHZZK_CHAT_CMD['pong']
-                    })
-                )
-                continue
-            
-            if chat_cmd != CHZZK_CHAT_CMD['chat'] and chat_cmd != CHZZK_CHAT_CMD['donation']:
-                continue
-
-            chat_data = raw_message['bdy'][0]
-            profile_data = json.loads(chat_data['profile'])
-
-            now = datetime.datetime.fromtimestamp(chat_data['msgTime']/1000)
-            now = datetime.datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
-
-            self.logger.info(f'[{now}] {profile_data["nickname"]} : {chat_data["msg"]}')
-
 
 def get_logger():
 
