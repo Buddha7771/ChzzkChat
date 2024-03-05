@@ -39,4 +39,4 @@
     python run.py --streamer_id 9381e7d6816e6d915a44a13c0195b202
 
 > 출력 내용은 자동으로 chat.log에 저장됩니다.   
-> 작동을 중지하려면 `ctrl + z'을 눌러주세요.
+> 작동을 중지하려면 `ctrl + c'을 눌러주세요.

@@ -27,6 +27,9 @@ class ChzzkChat:
 
     def connect(self):
 
+        self.chatChannelId = api.fetch_chatChannelId(self.streamer)
+        self.accessToken, self.extraToken = api.fetch_accessToken(self.chatChannelId, self.cookies)
+
         sock = WebSocket()
         sock.connect('wss://kr-ss1.chat.naver.com/chat')
         print(f'{self.channelName} 채팅창에 연결 중 .', end="")
@@ -115,6 +118,9 @@ class ChzzkChat:
                 try:
                     raw_message = self.sock.recv()
 
+                except KeyboardInterrupt:
+                    break 
+
                 except:
                     self.connect()
                     raw_message = self.sock.recv()
@@ -130,9 +136,19 @@ class ChzzkChat:
                             "cmd" : CHZZK_CHAT_CMD['pong']
                         })
                     )
+
+                    if self.chatChannelId != api.fetch_chatChannelId(self.streamer): # 방송 시작시 chatChannelId가 달라지는 문제
+                        self.connect()
+
                     continue
                 
-                if chat_cmd != CHZZK_CHAT_CMD['chat'] and chat_cmd != CHZZK_CHAT_CMD['donation']:
+                if chat_cmd == CHZZK_CHAT_CMD['chat']:
+                    chat_type = '채팅'
+
+                elif chat_cmd == CHZZK_CHAT_CMD['donation']:
+                    chat_type = '후원'
+
+                else:
                     continue
 
                 for chat_data in raw_message['bdy']:
@@ -146,13 +162,16 @@ class ChzzkChat:
                             profile_data = json.loads(chat_data['profile'])
                             nickname = profile_data["nickname"]
 
+                            if 'msg' not in chat_data:
+                                continue
+
                         except:
                             continue
 
                     now = datetime.datetime.fromtimestamp(chat_data['msgTime']/1000)
                     now = datetime.datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
 
-                    self.logger.info(f'[{now}] {nickname} : {chat_data["msg"]}')
+                    self.logger.info(f'[{now}][{chat_type}] {nickname} : {chat_data["msg"]}')
                 
             except:
                 pass
