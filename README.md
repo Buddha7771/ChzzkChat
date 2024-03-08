@@ -19,9 +19,9 @@
     $ conda activate chzzk
 
     # 패키지 설치
-    $ pip install websocket
-    $ pip install websocket-client
-    $ pip install requests 
+    $ pip install --r .\requirements.txt
+    # 또는
+    $ pip3 install --r .\requirements.txt
 
 ## 준비하기
 
