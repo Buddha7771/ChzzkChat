@@ -18,7 +18,7 @@ class ChzzkChat:
 
         self.sid           = None
         self.userIdHash    = api.fetch_userIdHash(self.cookies)
-        self.chatChannelId = api.fetch_chatChannelId(self.streamer)
+        self.chatChannelId = api.fetch_chatChannelId(self.streamer, self.cookies)
         self.channelName   = api.fetch_channelName(self.streamer)
         self.accessToken, self.extraToken = api.fetch_accessToken(self.chatChannelId, self.cookies)
 
@@ -27,7 +27,7 @@ class ChzzkChat:
 
     def connect(self):
 
-        self.chatChannelId = api.fetch_chatChannelId(self.streamer)
+        self.chatChannelId = api.fetch_chatChannelId(self.streamer, self.cookies)
         self.accessToken, self.extraToken = api.fetch_accessToken(self.chatChannelId, self.cookies)
 
         sock = WebSocket()
@@ -137,7 +137,7 @@ class ChzzkChat:
                         })
                     )
 
-                    if self.chatChannelId != api.fetch_chatChannelId(self.streamer): # 방송 시작시 chatChannelId가 달라지는 문제
+                    if self.chatChannelId != api.fetch_chatChannelId(self.streamer, self.cookies): # 방송 시작시 chatChannelId가 달라지는 문제
                         self.connect()
 
                     continue
