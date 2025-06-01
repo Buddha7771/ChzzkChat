@@ -1,40 +1,67 @@
-# Chzzk Chat Crawler
+<div align="center">
 
-<img src="figure/logo.svg" width="400">  
+# ChzzkChat
 
-<img src="figure/image.png">  
+**ChzzkChat**은 파이썬과 터미널에서 치지직 채팅창에 간편하게 연결할 수 있는 라이브러리입니다.
 
-파이썬을 통해 네이버 치지직 서비스의 채팅을 크롤링 해봅시다.
-
-이 코드는 [kimcore](https://github.com/kimcore/chzzk/tree/main)님의 코드를 기반으로 작성하였습니다.
-
-## 설치
-
-    # 코드 다운로드
-    $ git clone https://github.com/Buddha7771/ChzzkChat .
-    $ cd ChzzkChat
-
-    # 가상환경 설치
-    $ conda create -n chzzk python=3.9
-    $ conda activate chzzk
-
-    # 패키지 설치
-    $ pip install -r requirements.txt
-
-## 준비하기
-
-1. 웹 브라우저에서 네이버를 키고 개발자 도구(F12)를 킵니다.
-2. 쿠키탭에 들어가 `NID_AUT`와 `NID_SES` 값을 찾습니다.
-3. 해당 값들을 `cookies.json` 파일에 들어가 붙여 넣습니다.
-
-## 사용하기
+</div>
 
 
-    # 예시
-    python run.py 
+## 📦 설치
 
-    # 특정 채널에 적용하려면 아이디를 찾아 옵션으로 넣습니다
-    python run.py --streamer_id 9381e7d6816e6d915a44a13c0195b202
+pip를 사용해 간편하게 설치할 수 있습니다.
 
-> 출력 내용은 자동으로 chat.log에 저장됩니다.   
-> 작동을 중지하려면 `ctrl + c'을 눌러주세요.
+```bash
+pip install chzzkchat
+```
+
+> [!Warning]
+> python 3.10 이상이 필요합니다.
+
+
+## 🔐 로그인
+채팅에 연결하려면 네이버 쿠키 정보가 필요합니다. 아래 과정을 통해 쿠키를 등록해주세요.
+
+1. 웹 브라우저에서 네이버에 로그인합니다.
+2. 개발자 도구(F12)를 열어 쿠키 탭에서 `NID_AUT`, `NID_SES` 값을 찾아 복사합니다.
+3. 아래 명령어로 쿠키를 등록합니다.
+
+```bash
+chzzkchat login
+```
+
+
+## 🚀 사용 방법
+
+### ✅ 터미널에서 사용하기
+아래 명령어를 사용해 터머널에서 특정 스트리머의 채팅창에 연결할 수 있습니다. (입력한 키워드와 일치하는 채널 중 검색 결과 최상단 채널로 접속합니다.)
+
+```bash
+chzzkchat connect 녹두로
+```
+
+> [!Note]
+> `--log` 옵션을 추가하면 채팅 로그가 현재 디렉토리에 저장됩니다.
+> (예: `chzzkchat connect 녹두로 --log`)
+
+
+### ✅ 파이썬 코드에서 사용하기
+파이썬 코드 내에서 실시간 채팅을 수집하려면 다음 예제를 참고하세요.
+
+```python
+from chzzkchat import ChzzkApi, ChzzkChatClient
+
+# 스트리머 이름으로 채널 ID 검색
+keyword = "녹두로"
+streamer_id = ChzzkApi.search_channel_id(keyword)
+
+# 채팅 클라이언트 실행
+client = ChzzkChatClient(streamer_id=streamer_id)
+
+# 실시간 채팅 출력
+for msg in client.run():
+    output = f"[{msg.timestamp}] "
+    output += f"[{msg.chat_type.name}] "
+    output += f"{msg.nickname}: {msg.message}"
+    print(output)
+```

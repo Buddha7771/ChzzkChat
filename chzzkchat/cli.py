@@ -1,4 +1,5 @@
 import logging
+import shutil
 from datetime import datetime
 
 import click
@@ -61,14 +62,18 @@ def connect(keyword: str, *, log: bool) -> None:
         logging.basicConfig(
             filename=filename,
             level=logging.INFO,
-            format="%(time)s - [%(type)s] %(message)s",
+            format="%(time)s - [%(type)s] - [%(nickname)s] - %(message)s",
             encoding="utf-8",
         )
         logger = logging.getLogger()
-        logger.info(msg, extra={"time": now, "type": "SYSTEM"})
+        logger.info(
+            msg,
+            extra={"time": now, "type": "SYSTEM", "nickname": "시스템 메세지"},
+        )
 
     for msg in client.run():
         if msg.chat_type == ChzzkChatCmd.DONATION:
+            terminal_width = shutil.get_terminal_size().columns
             if msg.is_system():
                 output = click.style(
                     f"\n\n {msg.message}\n",
@@ -76,7 +81,7 @@ def connect(keyword: str, *, log: bool) -> None:
                     bold=True,
                     bg=ChzzkColor.DARK_GRAY.value,
                 )
-                log_type, log_msg = "SYSTEM", msg.message
+                log_type = "SYSTEM"
             else:
                 output = click.style(
                     f"\n\n {msg.nickname}\n",
@@ -89,7 +94,7 @@ def connect(keyword: str, *, log: bool) -> None:
                     fg="bright_white",
                     bg=ChzzkColor.VIOLET_DARK.value,
                 )
-                log_type, log_msg = "DONATION", f"{msg.nickname} {msg.message}"
+                log_type = "DONATION"
                 if msg.payamount is not None:
                     output += click.style(
                         f" 🧀 {msg.payamount}\n",
@@ -97,8 +102,7 @@ def connect(keyword: str, *, log: bool) -> None:
                         bold=True,
                         bg=ChzzkColor.VIOLET_DARK.value,
                     )
-                    log_msg += f" (🧀 {msg.payamount})"
-            click.echo(output + "\n")
+            click.echo((output + "\n").ljust(terminal_width))
 
         elif msg.chat_type == ChzzkChatCmd.CHAT:
             badges = ""
@@ -111,11 +115,18 @@ def connect(keyword: str, *, log: bool) -> None:
                 badges += " "
                 log_badges += "🤍 "
             nickname = click.style(f"{msg.nickname}", fg=msg.get_rgb_code(), bold=True)
-            output = f"{badges}{nickname}: {msg.message}"
+            output = f"{badges}{nickname} {msg.message}"
             click.echo(output)
-            log_type, log_msg = "CHAT", f"{log_badges}{msg.nickname} {msg.message}"
+            log_type = "CHAT"
         else:
             continue
 
         if log:
-            logger.info(log_msg, extra={"time": msg.timestamp, "type": log_type})
+            logger.info(
+                msg.message,
+                extra={
+                    "time": msg.timestamp,
+                    "type": log_type,
+                    "nickname": msg.nickname,
+                },
+            )
