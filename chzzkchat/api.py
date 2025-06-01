@@ -53,6 +53,9 @@ class ChzzkApi:
             response = self.session.get(url, timeout=30)
             response.raise_for_status()
             response = response.json()
+            if response["content"] is None:
+                error_msg = "채팅 채널이 존재하지 않습니다."
+                raise ValueError(error_msg)
             chat_channel_id = response["content"]["chatChannelId"]
         except requests.RequestException as e:
             raise requests.RequestException(error_msg) from e
@@ -118,3 +121,28 @@ class ChzzkApi:
         if user_id_hash is None:
             raise ValueError(error_msg)
         return user_id_hash
+
+    @staticmethod
+    def search_channel_id(keyword: str) -> str:
+        url = "https://api.chzzk.naver.com/service/v1/search/channels"
+        error_msg = f"'{keyword}'에 해당하는 채널을 찾을 수 없습니다."
+        params = {
+            "keyword": keyword,
+            "offset": 0,
+            "size": 13,
+            "withFirstChannelContent": "true",
+        }
+
+        try:
+            response = requests.get(url, headers=HEADERS, params=params, timeout=10)
+            response.raise_for_status()
+            response = response.json()
+            channels = response["content"]["data"]
+        except requests.RequestException as e:
+            raise requests.RequestException(error_msg) from e
+        except KeyError as e:
+            raise KeyError(error_msg) from e
+
+        if not channels:
+            raise ValueError(error_msg)
+        return channels[0]["channel"]["channelId"]

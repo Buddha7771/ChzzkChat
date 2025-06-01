@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from websocket import WebSocket
 
 from .api import ChzzkApi
-from .constant import CHZZK_VIOLET, NICKNAME_PALLETTE, ChzzkChatCmd
+from .constant import NICKNAME_PALLETTE, ChzzkChatCmd, ChzzkColor
 
 KST = timezone(timedelta(hours=9))
 
@@ -26,7 +26,7 @@ class ChzzkChatMessage:
 
     def get_rgb_code(self) -> tuple[int, int, int]:
         if self.uid == "anonymous":
-            return CHZZK_VIOLET
+            return ChzzkColor.VIOLET.value
 
         hash_value = 0
         for char in self.uid + self.chat_channel_id:
@@ -35,6 +35,9 @@ class ChzzkChatMessage:
         hex_color = NICKNAME_PALLETTE[hash_value % len(NICKNAME_PALLETTE)]
         hex_color = hex_color.lstrip("#")
         return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+    def is_system(self) -> bool:
+        return self.uid == "SYSTEM_MESSAGE"
 
 
 class ChzzkChatClient:
@@ -47,6 +50,7 @@ class ChzzkChatClient:
         self.api = api or ChzzkApi.load()
 
         self.userIdHash = self.api.fetch_user_id_hash()
+        self.channelName = self.api.fetch_channel_name(streamer_id)
         self.accessToken = None
         self.extraToken = None
         self.chatChannelId = None
@@ -119,8 +123,7 @@ class ChzzkChatClient:
         self._recv()
 
         if not self.sock.connected:
-            channel_name = self.api.fetch_channel_name(self.streamer_id)
-            msg = f"{channel_name} 채팅 서버에 연결할 수 없습니다."
+            msg = f"{self.channelName} 채팅 서버에 연결할 수 없습니다."
             raise ValueError(msg)
 
     def chat(self, message: str) -> None:
@@ -147,18 +150,20 @@ class ChzzkChatClient:
             },
         )
 
+    def pong(self) -> None:
+        self._send({"ver": "2", "cmd": ChzzkChatCmd.PONG.value})
+        if self.chatChannelId != self.api.fetch_chat_channel_id(
+            self.streamer_id,
+        ):  # 방송 시작시 chatChannelId가 달라지는 문제
+            self.connect()
+
     def run(self) -> Generator[ChzzkChatMessage, None, None]:
         while True:
             raw_message = self._recv()
             chat_cmd = raw_message.get("cmd")
 
             if chat_cmd == ChzzkChatCmd.PING.value:
-                self._send({"ver": "2", "cmd": ChzzkChatCmd.PONG.value})
-
-                if self.chatChannelId != self.api.fetch_chat_channel_id(
-                    self.streamer_id,
-                ):  # 방송 시작시 chatChannelId가 달라지는 문제
-                    self.connect()
+                self.pong()
                 continue
 
             if chat_cmd not in (ChzzkChatCmd.CHAT.value, ChzzkChatCmd.DONATION.value):
@@ -169,11 +174,14 @@ class ChzzkChatClient:
                 if "msg" not in chat_data:
                     continue
 
-                nickname = "익명의 후원자"
-                if chat_data["uid"] != "anonymous":
+                if chat_data["uid"] == "anonymous":
+                    nickname = "익명의 후원자"
+                elif chat_data["uid"] == "SYSTEM_MESSAGE":
+                    nickname = "시스템 메시지"
+                else:
                     try:
                         profile_data = json.loads(chat_data["profile"])
-                        nickname = profile_data.get("nickname", nickname)
+                        nickname = profile_data["nickname"]
                     except Exception as e:
                         msg = "프로필 데이터 파싱 오류."
                         raise ValueError(msg) from e

@@ -12,6 +12,12 @@ class ChzzkChatCmd(Enum):
     DONATION = 93102
 
 
+class ChzzkColor(Enum):
+    VIOLET = (111, 65, 227)
+    VIOLET_DARK = (88, 79, 162)
+    DARK_GRAY = (20, 21, 23)
+
+
 CONFIG_PATH = Path.home() / ".config" / "chzzkchat" / "config.json"
 CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -35,6 +41,3 @@ NICKNAME_PALLETTE = [
     "#9FCE8E", "#A6D293", "#ABD373", "#BFDE73",
 ]
 # fmt: on
-
-CHZZK_VIOLET: tuple[int, int, int] = (111, 65, 227)
-CHZZK_VIOLET_DARK: tuple[int, int, int] = (88, 79, 162)

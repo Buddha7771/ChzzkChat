@@ -1,7 +1,14 @@
+import logging
+from datetime import datetime
+
 import click
 
-from .client import ChzzkApi, ChzzkChatClient
-from .constant import CHZZK_VIOLET, CHZZK_VIOLET_DARK, CONFIG_PATH, ChzzkChatCmd
+from .client import KST, ChzzkApi, ChzzkChatClient
+from .constant import (
+    CONFIG_PATH,
+    ChzzkChatCmd,
+    ChzzkColor,
+)
 
 
 @click.group()
@@ -41,49 +48,74 @@ def login() -> None:
 
 
 @cli.command()
-@click.option(
-    "--streamer",
-    "-s",
-    type=str,
-    required=True,
-    help="스트리머의 아이디를 입력하세요.",
-)
-def connect(streamer: str) -> None:
-    client = ChzzkChatClient(streamer_id=streamer)
+@click.argument("keyword", type=str, required=True)
+@click.option("--log", is_flag=True)
+def connect(keyword: str, *, log: bool) -> None:
+    streamer_id = ChzzkApi.search_channel_id(keyword)
+    client = ChzzkChatClient(streamer_id=streamer_id)
+    msg = f"{client.channelName} 채팅 서버에 연결 중..."
+    click.echo(msg)
+    if log:
+        now = datetime.now(tz=KST).strftime("%Y-%m-%d %H:%M:%S")
+        filename = f"{client.channelName} {now}.log"
+        logging.basicConfig(
+            filename=filename,
+            level=logging.INFO,
+            format="%(time)s - [%(type)s] %(message)s",
+            encoding="utf-8",
+        )
+        logger = logging.getLogger()
+        logger.info(msg, extra={"time": now, "type": "SYSTEM"})
+
     for msg in client.run():
         if msg.chat_type == ChzzkChatCmd.DONATION:
-            output = click.style(
-                f"\n\n {msg.nickname}\n ",
-                fg="bright_white",
-                bold=True,
-                bg=CHZZK_VIOLET_DARK,
-            )
-            output += click.style(
-                f"{msg.message}\n",
-                fg="bright_white",
-                bg=CHZZK_VIOLET_DARK,
-            )
-            if msg.payamount is not None:
-                output += click.style(
-                    f" 🧀 {msg.payamount}\n",
+            if msg.is_system():
+                output = click.style(
+                    f"\n\n {msg.message}\n",
                     fg="bright_white",
                     bold=True,
-                    bg=CHZZK_VIOLET_DARK,
+                    bg=ChzzkColor.DARK_GRAY.value,
                 )
-            output += "\n"
-            click.echo(output)
-        elif msg.chat_type == ChzzkChatCmd.CHAT:
-            output = []
-            if msg.subscribed:
-                output.append("💎")
-            if msg.donated:
-                output.append(click.style("🤍", bg=CHZZK_VIOLET))
-            output.append(
-                click.style(
-                    f"{msg.nickname}",
-                    fg=msg.get_rgb_code(),
+                log_type, log_msg = "SYSTEM", msg.message
+            else:
+                output = click.style(
+                    f"\n\n {msg.nickname}\n",
+                    fg="bright_white",
                     bold=True,
-                ),
-            )
-            output.append(msg.message)
-            click.echo(" ".join(output))
+                    bg=ChzzkColor.VIOLET_DARK.value,
+                )
+                output += click.style(
+                    f" {msg.message}\n",
+                    fg="bright_white",
+                    bg=ChzzkColor.VIOLET_DARK.value,
+                )
+                log_type, log_msg = "DONATION", f"{msg.nickname} {msg.message}"
+                if msg.payamount is not None:
+                    output += click.style(
+                        f" 🧀 {msg.payamount}\n",
+                        fg="bright_white",
+                        bold=True,
+                        bg=ChzzkColor.VIOLET_DARK.value,
+                    )
+                    log_msg += f" (🧀 {msg.payamount})"
+            click.echo(output + "\n")
+
+        elif msg.chat_type == ChzzkChatCmd.CHAT:
+            badges = ""
+            log_badges = ""
+            if msg.subscribed:
+                badges += "💎 "
+                log_badges += "💎 "
+            if msg.donated:
+                badges += click.style("🤍", bg=ChzzkColor.VIOLET.value)
+                badges += " "
+                log_badges += "🤍 "
+            nickname = click.style(f"{msg.nickname}", fg=msg.get_rgb_code(), bold=True)
+            output = f"{badges}{nickname}: {msg.message}"
+            click.echo(output)
+            log_type, log_msg = "CHAT", f"{log_badges}{msg.nickname} {msg.message}"
+        else:
+            continue
+
+        if log:
+            logger.info(log_msg, extra={"time": msg.timestamp, "type": log_type})
